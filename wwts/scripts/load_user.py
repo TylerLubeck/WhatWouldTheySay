@@ -1,5 +1,8 @@
+import json
 import click
 import requests
+import logging
+logger = logging.getLogger(__name__)
 
 from collections import defaultdict
 
@@ -80,9 +83,8 @@ def _get_user_messages_in_channel(user_id, channel_id, token):
         try:
             has_more = response['has_more']
             latest = has_more and response['latest']
-        except Exception as e:
-            print(e)
-            print(response.keys())
+        except:
+            pass
 
         messages += _get_user_messages_from_list(response['messages'], user_id)
 
@@ -99,24 +101,39 @@ def load_user(context, username):
         username,
         token
     )
+    db_session = context.obj.db_session
+    user = db_session.query(User).filter(User.slack_id == user_id).one()
+    db_session.query(Word).filter(Word.user == user).delete()
+
     channels = _get_list_of_channel_ids(token)
 
     messages = []
-    for channel in channels:
+    for idx, channel in enumerate(channels):
+        logger.info('Checking channel %s of %s', idx, len(channels))
         messages += _get_user_messages_in_channel(user_id, channel, token)
 
     markov_dict = _build_markov_chain_data(messages)
 
-    db_session = context.obj.db_session
-    user = db_session.query(User).filter(User.slack_id == user_id).one()
+    with open('tmp.json', 'w') as f:
+        json.dump(markov_dict, f)
+
     for from_word, to_words in markov_dict.items():
         for to_word, count in to_words.items():
-            word = Word(
-                from_word=from_word,
-                to_word=to_word,
-                count=count,
-                user=user
-            )
-            db_session.add(word)
+            if (
+                (from_word and len(from_word) > 250)
+                or (to_word and len(to_word) > 250)
+            ):
+                continue
+
+            try:
+                word = Word(
+                    from_word=from_word,
+                    to_word=to_word,
+                    count=count,
+                    user=user
+                )
+                db_session.add(word)
+            except:
+                logger.error('Failed to insert word')
     db_session.commit()
     context.obj.db_session.close()

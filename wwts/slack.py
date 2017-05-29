@@ -18,8 +18,9 @@ def _handle_message(db_session, slack_client, event):
     match = msg_format_regex.match(message_text)
 
     markov_message = None
-    slack_user_image = None
+    slack_user = None
     if match:
+        logger.info(message_text, match)
         slack_id = match['slack_id']
         logger.info('Looking up %s', slack_id)
         try:
@@ -30,19 +31,19 @@ def _handle_message(db_session, slack_client, event):
             markov_message = 'ERROR: We don\'t know what they\'ll say.'
         else:
             what_would_they_say = wwts_from_user(db_session, user)
-            slack_user_image = _get_slack_user_image(slack_client, slack_id)
+            slack_user = _get_slack_user(slack_client, user.slack_id)
             markov_message = what_would_they_say
 
-    return markov_message, slack_user_image
+    return markov_message, slack_user
 
 
-def _get_slack_user_image(slack_client, slack_user_id):
+def _get_slack_user(slack_client, slack_user_id):
     result = slack_client.api_call('users.info', user=slack_user_id)
-    image = None
+    user = None
     if result['ok']:
-        image = result['user']['profile']['image_32']
+        user = result['user']
 
-    return image
+    return user
 
 
 @click.command()
@@ -56,21 +57,28 @@ def slack(context):
         while True:
             events = slack_client.rtm_read()
             for event in events:
-                logger.debug(event)
                 if event.get('type') == 'message' and 'subtype' not in event:
-                    markov_message, image = _handle_message(
+                    markov_message, slack_user = _handle_message(
                         db_session,
                         slack_client,
                         event
                     )
 
-                    channel_id = event['channel']
-                    slack_client.api_call(
-                        'chat.postMessage',
-                        channel=channel_id,
-                        text=markov_message,
-                        icon_url=image
-                    )
+                    if markov_message and slack_user:
+                        channel_id = event['channel']
+                        image = slack_user['profile']['image_32']
+                        name = '{} Bot'.format(
+                            slack_user['profile']['real_name']
+                        )
+                        response = slack_client.api_call(
+                            'chat.postMessage',
+                            channel=channel_id,
+                            text=markov_message,
+                            icon_url=image,
+                            username=name
+                        )
+
+                        logger.info(response)
 
             time.sleep(1)  # Just to be polite
     else:

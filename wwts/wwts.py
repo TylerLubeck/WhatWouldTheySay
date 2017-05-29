@@ -62,5 +62,5 @@ def wwts(db_session, slack_token, username):
     )
 
     user = db_session.query(User).filter(User.slack_id == user_id).one()
-    return wwts_from_user(user)
+    return wwts_from_user(db_session, user)
 

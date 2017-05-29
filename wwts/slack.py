@@ -1,3 +1,4 @@
+from sqlalchemy.orm.exc import NoResultFound
 import click
 import time
 from slackclient import SlackClient
@@ -21,12 +22,16 @@ def _handle_message(db_session, slack_client, event):
     if match:
         slack_id = match['slack_id']
         logger.info('Looking up %s', slack_id)
-        user = db_session.query(User).filter(User.slack_id == slack_id).one()
-        what_would_they_say = wwts_from_user(db_session, user)
-
-        slack_user_image = _get_slack_user_image(slack_client, slack_id)
-
-        markov_message = what_would_they_say
+        try:
+            user = db_session.query(User).filter(
+                User.slack_id == slack_id
+            ).one()
+        except NoResultFound:
+            markov_message = 'ERROR: We don\'t know what they\'ll say.'
+        else:
+            what_would_they_say = wwts_from_user(db_session, user)
+            slack_user_image = _get_slack_user_image(slack_client, slack_id)
+            markov_message = what_would_they_say
 
     return markov_message, slack_user_image
 

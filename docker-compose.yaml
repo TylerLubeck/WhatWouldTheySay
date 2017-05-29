@@ -18,4 +18,5 @@ services:
      env_file: .env
      volumes:
        - .:/code
+     restart: "on-failure"
      command: "python -m wwts slack"

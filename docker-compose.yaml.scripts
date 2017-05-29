@@ -1,0 +1,20 @@
+---
+
+version: '3'
+services:
+  user-ingestion:
+    build: .
+    links:
+      - mysql
+    env_file: .env
+    volumes:
+      - .:/code
+    command: "python -m wwts load_user"
+  wwts:
+    build: .
+    links:
+      - mysql
+    env_file: .env
+    volumes:
+      - .:/code
+    command: "python -m wwts what_would_they_say"

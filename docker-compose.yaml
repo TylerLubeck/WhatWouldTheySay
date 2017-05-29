@@ -1,0 +1,21 @@
+---
+
+version: '3'
+services:
+   mysql:
+     image: mysql
+     env_file: .env
+     command: "mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+     ports:
+       - 3306:3306
+     volumes:
+       - ./mysqldb:/var/lib/mysql
+       - ./mysql.conf:/etc/mysql/conf.d/my-conf.conf
+   wwts-slack:
+     build: .
+     links:
+       - mysql
+     env_file: .env
+     volumes:
+       - .:/code
+     command: "python -m wwts slack"

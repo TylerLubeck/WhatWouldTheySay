@@ -18,3 +18,12 @@ services:
     volumes:
       - .:/code
     command: "python -m wwts what_would_they_say"
+
+  ingest-private-user:
+    build: .
+    links:
+      - mysql
+    env_file: .env
+    volumes:
+      - .:/code
+    command: "python -m wwts load_private_user"

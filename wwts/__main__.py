@@ -3,7 +3,7 @@ import click
 
 from wwts.database import create_sqlalchemy_session
 
-from wwts.scripts.load_user import load_user
+from wwts.scripts.load_user import load_user, load_private_user
 from wwts.scripts.wwts import what_would_they_say
 from wwts.slack import slack
 
@@ -26,6 +26,7 @@ def main(context, token, db_url):
     context.obj = Context(token, db_url)
 
 main.add_command(load_user)
+main.add_command(load_private_user)
 main.add_command(what_would_they_say)
 main.add_command(slack)
 

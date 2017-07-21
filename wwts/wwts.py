@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 
 def _convert_words_to_dict(words):
+    """Convert a list of word objects in to a frequency counter of pairs"""
+
     word_dict = defaultdict(lambda: defaultdict(lambda: 0))
     for word in words:
         word_dict[word.from_word][word.to_word] = word.count
@@ -17,6 +19,9 @@ def _convert_words_to_dict(words):
 
 
 def _compute_next_word(first_word, words):
+    """Given a word, compute the most likely next word choice based on 
+    frequency pair
+    """
     choice_words = words[first_word]
     total_usage = sum(choice_words.values())
     target_usage = total_usage * random.random()
@@ -35,6 +40,10 @@ def _compute_next_word(first_word, words):
 
 
 def wwts_from_user(db_session, user):
+    """Given a user, generate a sentence they might say
+
+    NOTE: Maxed at a 50 word sentence 
+    """
     words = db_session.query(Word).filter(Word.user == user).all()
     word_dict = _convert_words_to_dict(words)
 
@@ -42,6 +51,8 @@ def wwts_from_user(db_session, user):
     next_word = random.choice(list(word_dict.keys()))
     sentence.append(next_word)
 
+    # NOTE: This is arbitrarily capped at 50 words to prevent any weird
+    # endless word loops
     while next_word and len(sentence) < 50:
         logger.debug(
             'next word: %s, sentence: %s',
@@ -55,6 +66,7 @@ def wwts_from_user(db_session, user):
 
 
 def wwts(db_session, slack_token, username):
+    """Compute what a user might say"""
     user_id = get_user_id_for_username(
         db_session,
         username,

@@ -12,17 +12,20 @@ logger = logging.getLogger(__name__)
 
 
 class Context:
-    def __init__(self, slack_token, db_url):
+    """A Click Context object to hold a few things necessary for all commands
+    """
+    def __init__(self, slack_token: str, db_url: str) -> None:
         self.token = slack_token
         self.db_url = db_url
-        self.db_session = create_sqlalchemy_session(db_url)
+        # TODO: close this? do we care?
+        self.db_session = create_sqlalchemy_session(db_url)  
 
 
 @click.group()
 @click.pass_context
 @click.option('--token', required=True, envvar='SLACK_TOKEN')
 @click.option('--db_url', required=True, envvar='DB_URL')
-def main(context, token, db_url):
+def main(context: Context, token: str, db_url: str) -> None:
     context.obj = Context(token, db_url)
 
 main.add_command(load_user)

@@ -6,6 +6,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_id_for_username(db_session, username, token):
+    """Based on a username, get the slack user id
+
+    We have to loop through all users in the slack team because slack
+    doesn't provide an API for this mapping.
+
+    # TODO: Cache this result. Simple lru_cache is probably fine
+    """
     all_users = requests.post(
         'https://slack.com/api/users.list',
         data={

@@ -14,6 +14,10 @@ msg_format_regex = re.compile('^what would <@(?P<slack_id>.*)> say\??$')
 
 
 def _handle_message(db_session, slack_client, event):
+    """If a message matches the correct format, make a markov chain
+    for the requested user and post it back to the channel
+    """
+
     message_text = event['text']
     match = msg_format_regex.match(message_text)
 
@@ -38,6 +42,7 @@ def _handle_message(db_session, slack_client, event):
 
 
 def _get_slack_user(slack_client, slack_user_id):
+    """Get the slack user object based on the slack user id"""
     result = slack_client.api_call('users.info', user=slack_user_id)
     user = None
     if result['ok']:
@@ -49,7 +54,8 @@ def _get_slack_user(slack_client, slack_user_id):
 @click.command()
 @click.pass_context
 def slack(context):
-    slack_token = context.obj.token
+    """Listen for slack messages and dispact as appropriate"""
+    slack_token = context.obj.token  # type: str
     db_session = context.obj.db_session
     slack_client = SlackClient(slack_token)
 
